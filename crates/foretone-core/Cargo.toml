@@ -1,0 +1,8 @@
+[package]
+name = "foretone-core"
+version = "0.1.0"
+edition = "2021"
+description = "Online predictive-coding sequence learner (no dependencies)"
+license = "MIT"
+
+[dependencies]
