@@ -10,8 +10,10 @@
 //! and `A` with *local* rules (error times presynaptic activity). There is no
 //! backpropagation through time: this is the brain-inspired part.
 
+mod hier;
 mod rng;
 
+pub use hier::{HierConfig, HierModel};
 pub use rng::Rng;
 
 /// Hyper-parameters of the model.
@@ -77,7 +79,7 @@ pub fn softmax(logits: &[f32]) -> Vec<f32> {
     e
 }
 
-fn matvec(m: &[f32], rows: usize, cols: usize, v: &[f32]) -> Vec<f32> {
+pub(crate) fn matvec(m: &[f32], rows: usize, cols: usize, v: &[f32]) -> Vec<f32> {
     (0..rows)
         .map(|i| {
             m[i * cols..(i + 1) * cols]
