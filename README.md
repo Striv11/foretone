@@ -44,12 +44,14 @@ Expected output (abridged): mean surprise falls from ~1.3 to ~0.03 nats over 60 
 - Softmax sensory prediction with cross-entropy error (`x − p`) instead of squared error: still a local error signal, but gives proper probabilities and stable learning.
 - `Model` is the single-layer Day-1 baseline; `HierModel` adds a slow top layer `r2` that supplies top-down context to the fast layer, with explicit precisions (`pi1`, `pi2`). Its energy gradient is verified against finite differences in `tests/hier.rs`.
 - Honest benchmark (`cargo run --release -p foretone-core --example bench`, mean surprise on the 2nd playthrough of 5 songs, both models at their best-tuned learning rates): Day-1 1.702 nats, hierarchy 1.634. The gain is modest and not uniform (the hierarchy loses on 2 of 5 songs); its clearer advantage is stability at high learning rates, where the single layer diverges (3.9 nats at lr_a=0.5).
+- Inputs: `parse_melody("C4 D4 E4")` for note names, `midi_melody(bytes)` for `.mid` files (in-crate SMF parser: running status, meta/sysex, multi-track merge), `char_vocab` for text mode; `Vocab` maps tokens to dense indices.
+- `Model::to_bytes/from_bytes` (and `HierModel`) use a tiny versioned binary format (`FTN1` magic) storing raw float bits, so a restored model continues bit-exactly; corrupt, truncated or oversized input returns an error rather than panicking or over-allocating.
 - Own xorshift RNG keeps the core dependency-free and WASM-friendly.
 
 ## Roadmap
 - [x] Core recurrent predictive-coding learner with tests (Day 1)
 - [x] Hierarchy and precision weighting (Day 2)
-- [ ] MIDI / text encoders, serialization (Day 3)
+- [x] Note-name / MIDI / text encoders, binary serialization (Day 3)
 - [ ] WASM bindings (Day 4)
 - [ ] Playground UI (Day 5)
 - [ ] Visualizations, e2e tests, screenshots (Day 6)
