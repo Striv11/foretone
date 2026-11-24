@@ -10,10 +10,16 @@
 //! and `A` with *local* rules (error times presynaptic activity). There is no
 //! backpropagation through time: this is the brain-inspired part.
 
+mod codec;
+mod encode;
 mod hier;
+mod midi;
 mod rng;
 
+pub use codec::DecodeError;
+pub use encode::{char_vocab, note_name, parse_melody, parse_note, ParseError, Vocab};
 pub use hier::{HierConfig, HierModel};
+pub use midi::{midi_melody, parse_midi, MidiError, NoteOn};
 pub use rng::Rng;
 
 /// Hyper-parameters of the model.
@@ -69,6 +75,59 @@ pub struct Model {
     r: Vec<f32>,
     /// Current prediction of the next symbol.
     pred: Vec<f32>,
+}
+
+impl Model {
+    /// Serialize config, weights and latent state to a compact binary blob.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use codec::*;
+        let c = &self.cfg;
+        let mut w = Writer::new(KIND_MODEL);
+        w.u32(c.vocab);
+        w.u32(c.hidden);
+        w.u32(c.infer_steps);
+        for v in [c.lr_infer, c.lr_w, c.lr_a, c.prior_precision] {
+            w.f32(v);
+        }
+        w.u64(c.seed);
+        for v in [&self.w, &self.a, &self.r, &self.pred] {
+            w.f32s(v);
+        }
+        w.0
+    }
+
+    /// Inverse of [`Model::to_bytes`]; the restored model continues bit-exactly.
+    pub fn from_bytes(b: &[u8]) -> Result<Self, DecodeError> {
+        use codec::*;
+        let mut r = Reader::new(b, KIND_MODEL)?;
+        let (vocab, hidden, infer_steps) = (r.u32()?, r.u32()?, r.u32()?);
+        if vocab < 2 || hidden < 1 {
+            return Err(DecodeError::Invalid("sizes"));
+        }
+        let cfg = Config {
+            vocab,
+            hidden,
+            infer_steps,
+            lr_infer: r.f32()?,
+            lr_w: r.f32()?,
+            lr_a: r.f32()?,
+            prior_precision: r.f32()?,
+            seed: r.u64()?,
+        };
+        let mul = |a: usize, b: usize| a.checked_mul(b).ok_or(DecodeError::Invalid("sizes"));
+        let w = r.f32s(mul(vocab, hidden)?)?;
+        let a = r.f32s(mul(hidden, hidden)?)?;
+        let rr = r.f32s(hidden)?;
+        let pred = r.f32s(vocab)?;
+        r.finish()?;
+        Ok(Model {
+            cfg,
+            w,
+            a,
+            r: rr,
+            pred,
+        })
+    }
 }
 
 pub fn softmax(logits: &[f32]) -> Vec<f32> {

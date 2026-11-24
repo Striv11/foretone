@@ -12,6 +12,7 @@
 //! Every update below is local: an error times the activity of the layer it
 //! projects from. No backpropagation through time.
 
+use crate::codec::{DecodeError, Reader, Writer, KIND_HIER};
 use crate::{matvec, softmax, Rng};
 
 #[derive(Clone, Debug)]
@@ -91,6 +92,77 @@ impl HierModel {
             a2,
             cfg,
         }
+    }
+
+    /// Serialize config, weights and latent state to a compact binary blob.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let c = &self.cfg;
+        let mut w = Writer::new(KIND_HIER);
+        for n in [c.vocab, c.hidden1, c.hidden2, c.infer_steps] {
+            w.u32(n);
+        }
+        for v in [
+            c.lr_infer,
+            c.top_slowness,
+            c.lr_w,
+            c.lr_a,
+            c.lr_top,
+            c.pi1,
+            c.pi2,
+        ] {
+            w.f32(v);
+        }
+        w.u64(c.seed);
+        for v in [
+            &self.w, &self.a1, &self.b, &self.a2, &self.r1, &self.r2, &self.pred,
+        ] {
+            w.f32s(v);
+        }
+        w.0
+    }
+
+    /// Inverse of [`HierModel::to_bytes`].
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+        let mut r = Reader::new(bytes, KIND_HIER)?;
+        let (vocab, hidden1, hidden2, infer_steps) = (r.u32()?, r.u32()?, r.u32()?, r.u32()?);
+        if vocab < 2 || hidden1 < 1 || hidden2 < 1 {
+            return Err(DecodeError::Invalid("sizes"));
+        }
+        let cfg = HierConfig {
+            vocab,
+            hidden1,
+            hidden2,
+            infer_steps,
+            lr_infer: r.f32()?,
+            top_slowness: r.f32()?,
+            lr_w: r.f32()?,
+            lr_a: r.f32()?,
+            lr_top: r.f32()?,
+            pi1: r.f32()?,
+            pi2: r.f32()?,
+            seed: r.u64()?,
+        };
+        // Sizes are bounded by the remaining input inside `f32s`, but the
+        // products must not overflow either.
+        let mul = |a: usize, b: usize| a.checked_mul(b).ok_or(DecodeError::Invalid("sizes"));
+        let w = r.f32s(mul(vocab, hidden1)?)?;
+        let a1 = r.f32s(mul(hidden1, hidden1)?)?;
+        let b = r.f32s(mul(hidden1, hidden2)?)?;
+        let a2 = r.f32s(mul(hidden2, hidden2)?)?;
+        let r1 = r.f32s(hidden1)?;
+        let r2 = r.f32s(hidden2)?;
+        let pred = r.f32s(vocab)?;
+        r.finish()?;
+        Ok(HierModel {
+            cfg,
+            w,
+            a1,
+            b,
+            a2,
+            r1,
+            r2,
+            pred,
+        })
     }
 
     pub fn config(&self) -> &HierConfig {
