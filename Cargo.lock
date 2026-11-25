@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "foretone-core"
 version = "0.1.0"
+
+[[package]]
+name = "foretone-wasm"
+version = "0.1.0"
+dependencies = [
+ "foretone-core",
+]

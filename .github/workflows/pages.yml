@@ -19,7 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      # Day 4 adds: Rust wasm32 target + wasm-bindgen build into web/pkg
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: cargo build --release -p foretone-wasm --target wasm32-unknown-unknown
+      - run: |
+          mkdir -p web/pkg
+          cp target/wasm32-unknown-unknown/release/foretone_wasm.wasm web/pkg/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

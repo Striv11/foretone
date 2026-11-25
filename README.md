@@ -22,7 +22,7 @@ Predictive coding is a compact, biologically motivated learning theory, and it i
         next-note distribution = softmax(W·f(A·f(r)))     surprise = −ln p(actual)
 
  crates/foretone-core   pure Rust model (no deps)           ← Day 1
- crates/foretone-wasm   wasm-bindgen bindings               ← Day 4
+ crates/foretone-wasm   C-ABI wasm module + web/foretone.mjs   ← Day 4
  web/                   static playground, GitHub Pages     ← Days 5-6
 ```
 Invariants: deterministic for a given seed; all learning rules are local (error × presynaptic activity); no BPTT.
@@ -46,13 +46,14 @@ Expected output (abridged): mean surprise falls from ~1.3 to ~0.03 nats over 60 
 - Honest benchmark (`cargo run --release -p foretone-core --example bench`, mean surprise on the 2nd playthrough of 5 songs, both models at their best-tuned learning rates): Day-1 1.702 nats, hierarchy 1.634. The gain is modest and not uniform (the hierarchy loses on 2 of 5 songs); its clearer advantage is stability at high learning rates, where the single layer diverges (3.9 nats at lr_a=0.5).
 - Inputs: `parse_melody("C4 D4 E4")` for note names, `midi_melody(bytes)` for `.mid` files (in-crate SMF parser: running status, meta/sysex, multi-track merge), `char_vocab` for text mode; `Vocab` maps tokens to dense indices.
 - `Model::to_bytes/from_bytes` (and `HierModel`) use a tiny versioned binary format (`FTN1` magic) storing raw float bits, so a restored model continues bit-exactly; corrupt, truncated or oversized input returns an error rather than panicking or over-allocating.
+- WASM uses a plain C ABI (`ft_new/ft_observe/ft_predict/ft_reset/ft_export/ft_import`, host-managed buffers) rather than wasm-bindgen: the surface is only numbers and byte buffers, so the module has zero dependencies and no extra CLI, and `web/foretone.mjs` loads it with standard `WebAssembly.instantiate`. Errors return sentinel values (never panic across the boundary). The wasm build is not bit-identical to native (Rust's libm vs the system libm for `tanh`/`exp`); the smoke test (`bash web/test/run-smoke.sh`) replays 160 notes and checks agreement within 1e-3, and `ft_*` is checked bit-for-bit against the native model in `crates/foretone-wasm/tests/api.rs`.
 - Own xorshift RNG keeps the core dependency-free and WASM-friendly.
 
 ## Roadmap
 - [x] Core recurrent predictive-coding learner with tests (Day 1)
 - [x] Hierarchy and precision weighting (Day 2)
 - [x] Note-name / MIDI / text encoders, binary serialization (Day 3)
-- [ ] WASM bindings (Day 4)
+- [x] WASM bindings (Day 4)
 - [ ] Playground UI (Day 5)
 - [ ] Visualizations, e2e tests, screenshots (Day 6)
 - [ ] Performance budget and v1 (Day 7)

@@ -20,3 +20,9 @@ Newest entries at the bottom. Each entry records what actually changed, what was
 - Tests (`tests/data.rs`, 12): note parsing edge cases, name round trip for all 128 pitches, fixture-byte MIDI files built in-test, truncation at every byte offset, bit-exact round trip including a NaN payload and identical continuation after restore, hostile size headers.
 - Learned: my first MIDI->model test was too optimistic (12 repeats isn't enough for 0.3 nats); the single-layer model needs ~50 cycles. Also guarded length*size overflow on decode since WASM is 32-bit.
 - Next: Day 4 — `foretone-wasm` crate with wasm-bindgen (observe/predict/reset/export/import), pages build, Node smoke test matching native output.
+
+## 2026-11-25 — Day 4
+- Added `foretone-wasm`: a dependency-free C-ABI cdylib (`ft_new/observe/predict/reset/export/import`, `ft_alloc/dealloc`), a safe `Session` core, and `web/foretone.mjs` wrapper. Chose C ABI over wasm-bindgen deliberately: tiny surface, no CLI to install in CI, plain `WebAssembly.instantiate` in browser and Node. Documented in PLAN/README.
+- Tests: 6 native tests drive the exported functions (bit-exact vs `Model`, seed halves, null/invalid inputs return errors, export/import continues identically, failed import leaves model intact, reset keeps weights). `web/test/run-smoke.sh` builds the .wasm and replays 160 notes in Node against a native reference, plus export/import and error paths. check.sh runs it when the wasm target and Node exist (mandatory in CI); CI and pages workflows now build the wasm.
+- Learned: wasm output is not bit-identical to native (libm differences), though printed values agree to 1e-6; so the criterion is "same within tolerance". Also fixed my own flawed reset test (C is ambiguous in the tune; use C D E -> G).
+- Next: Day 5 — playground UI using web/foretone.mjs (piano roll, probability bars, surprise sparkline, Web Audio, light/dark).
