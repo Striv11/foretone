@@ -26,3 +26,9 @@ Newest entries at the bottom. Each entry records what actually changed, what was
 - Tests: 6 native tests drive the exported functions (bit-exact vs `Model`, seed halves, null/invalid inputs return errors, export/import continues identically, failed import leaves model intact, reset keeps weights). `web/test/run-smoke.sh` builds the .wasm and replays 160 notes in Node against a native reference, plus export/import and error paths. check.sh runs it when the wasm target and Node exist (mandatory in CI); CI and pages workflows now build the wasm.
 - Learned: wasm output is not bit-identical to native (libm differences), though printed values agree to 1e-6; so the criterion is "same within tolerance". Also fixed my own flawed reset test (C is ambiguous in the tune; use C D E -> G).
 - Next: Day 5 — playground UI using web/foretone.mjs (piano roll, probability bars, surprise sparkline, Web Audio, light/dark).
+
+## 2026-11-26 — Day 5
+- Built the playground: piano keys (tap, pointer, keyboard A–K, accessible buttons), live next-note probability bars (the model's top guess highlighted), surprise sparkline, sequence input, Web Audio triangle-wave playback with a sound toggle, empty state, load-error state, light/dark via `prefers-color-scheme`.
+- Split pure logic (`playground.mjs`) from DOM/audio (`app.mjs`) so it is testable; `web/test/playground.mjs` covers key mapping, note parsing, sparkline math, history cap, violation spike, bad-input errors. check.sh now runs it whenever Node exists.
+- Learned: the dev environment had CI=true but no wasm32 target, so check.sh failed until I installed the target; the full wasm smoke test now passes here too. I could not drive a real browser, so the DOM layer is untested beyond code review; Day 6 Playwright e2e should cover it.
+- Next: Day 6 — latent heatmap (needs a wasm export for r), error trace, dream mode, shortcuts, screenshots, Playwright e2e.

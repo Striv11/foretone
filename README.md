@@ -4,7 +4,7 @@
 
 ![CI](https://github.com/Striv11/foretone/actions/workflows/ci.yml/badge.svg)
 
-**Live demo:** https://striv11.github.io/foretone/ (landing page now; interactive playground planned, Day 5)
+**Live demo:** https://striv11.github.io/foretone/ (interactive playground; needs the wasm build, see below)
 
 ## Problem
 Most sequence models are trained offline with backpropagation through time on big datasets. The brain appears to learn continuously, from a single stream, using only local signals: each region predicts its input and learns from the *prediction error*. It is hard to build intuition for that. foretone makes it tangible: play a few notes and watch the model learn the pattern in real time, with its expectations and surprise visualized.
@@ -34,7 +34,7 @@ bash check.sh        # fmt, clippy, tests
 ```
 
 ## Demo
-Status: **CLI demo available; browser demo planned.**
+Status: **CLI demo and browser playground available.** Browser: build the wasm (`cargo build --release -p foretone-wasm --target wasm32-unknown-unknown`), copy `foretone_wasm.wasm` to `web/pkg/`, then serve `web/` over http (e.g. `python3 -m http.server -d web`). Tap the keys or use A–K; type a sequence and press Play.
 ```
 cargo run --release -p foretone-core --example melody
 ```
@@ -47,6 +47,7 @@ Expected output (abridged): mean surprise falls from ~1.3 to ~0.03 nats over 60 
 - Inputs: `parse_melody("C4 D4 E4")` for note names, `midi_melody(bytes)` for `.mid` files (in-crate SMF parser: running status, meta/sysex, multi-track merge), `char_vocab` for text mode; `Vocab` maps tokens to dense indices.
 - `Model::to_bytes/from_bytes` (and `HierModel`) use a tiny versioned binary format (`FTN1` magic) storing raw float bits, so a restored model continues bit-exactly; corrupt, truncated or oversized input returns an error rather than panicking or over-allocating.
 - WASM uses a plain C ABI (`ft_new/ft_observe/ft_predict/ft_reset/ft_export/ft_import`, host-managed buffers) rather than wasm-bindgen: the surface is only numbers and byte buffers, so the module has zero dependencies and no extra CLI, and `web/foretone.mjs` loads it with standard `WebAssembly.instantiate`. Errors return sentinel values (never panic across the boundary). The wasm build is not bit-identical to native (Rust's libm vs the system libm for `tanh`/`exp`); the smoke test (`bash web/test/run-smoke.sh`) replays 160 notes and checks agreement within 1e-3, and `ft_*` is checked bit-for-bit against the native model in `crates/foretone-wasm/tests/api.rs`.
+- The playground keeps DOM/audio code (`web/app.mjs`) separate from pure logic (`web/playground.mjs`: key map, note parsing, history, sparkline), which `web/test/playground.mjs` tests in Node with a fake model; check.sh runs it.
 - Own xorshift RNG keeps the core dependency-free and WASM-friendly.
 
 ## Roadmap
@@ -54,7 +55,7 @@ Expected output (abridged): mean surprise falls from ~1.3 to ~0.03 nats over 60 
 - [x] Hierarchy and precision weighting (Day 2)
 - [x] Note-name / MIDI / text encoders, binary serialization (Day 3)
 - [x] WASM bindings (Day 4)
-- [ ] Playground UI (Day 5)
+- [x] Playground UI (Day 5)
 - [ ] Visualizations, e2e tests, screenshots (Day 6)
 - [ ] Performance budget and v1 (Day 7)
 

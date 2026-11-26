@@ -3,12 +3,54 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>foretone — a brain-inspired melody predictor</title>
 <style>
-:root{color-scheme:light dark;--bg:#fafaf7;--fg:#1c1b22;--ac:#5b4bdb}
-@media(prefers-color-scheme:dark){:root{--bg:#14131a;--fg:#ececf1;--ac:#9d90ff}}
-body{margin:0;background:var(--bg);color:var(--fg);font:1.125rem/1.6 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:1.5rem;box-sizing:border-box}
-main{max-width:34rem}h1{font-size:2.25rem;margin:0 0 .5rem}em{color:var(--ac);font-style:normal}
+:root{color-scheme:light dark;--bg:#fafaf7;--fg:#1c1b22;--mut:#6b6a78;--ac:#5b4bdb;--card:#fff;--line:#dcdbe4;--warn:#d6336c;--key:#fff;--blk:#1c1b22}
+@media(prefers-color-scheme:dark){:root{--bg:#14131a;--fg:#ececf1;--mut:#9a99a8;--ac:#9d90ff;--card:#1d1c26;--line:#34333f;--warn:#ff6b9a;--key:#2a2933;--blk:#0b0b10}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:1rem/1.5 system-ui,sans-serif;padding:1rem}
+main{max-width:46rem;margin:0 auto;display:grid;gap:1rem}
+h1{font-size:1.75rem;margin:0}em{color:var(--ac);font-style:normal}
+p{margin:.25rem 0;color:var(--mut)}
+section{background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1rem}
+h2{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 .5rem}
+#bars{display:flex;gap:.25rem;align-items:flex-end;height:9rem}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.7rem;color:var(--mut)}
+.bar i{display:block;width:100%;background:var(--ac);border-radius:.2rem .2rem 0 0;min-height:2px;opacity:.85}
+.bar.hit i{background:var(--warn)}
+#keys{display:flex;gap:.25rem;flex-wrap:nowrap}
+button{font:inherit;color:inherit;cursor:pointer}
+.key{flex:1;min-width:0;height:7rem;border:1px solid var(--line);border-radius:.4rem;background:var(--key);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:.25rem 0;font-size:.75rem}
+.key.black{background:var(--blk);color:#ddd;height:5rem}
+.key:focus-visible,.tool:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.key.active{outline:3px solid var(--warn)}
+.key small{color:var(--mut)}
+#spark{width:100%;height:5rem;display:block}
+#spark polyline{fill:none;stroke:var(--warn);stroke-width:2;vector-effect:non-scaling-stroke}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.tool{border:1px solid var(--line);background:var(--card);border-radius:.4rem;padding:.35rem .75rem}
+input[type=text]{flex:1;min-width:10rem;font:inherit;padding:.35rem .5rem;border:1px solid var(--line);border-radius:.4rem;background:var(--bg);color:var(--fg)}
+#status{min-height:1.5em}#status.err{color:var(--warn)}
+#empty{color:var(--mut);text-align:center;padding:1rem 0}
 </style></head><body><main>
+<header>
 <h1>fore<em>tone</em></h1>
-<p>A predictive-coding network that learns melodies <strong>online</strong>, one note at a time, and shows you what it expects to hear next — and how surprised it is when you break the pattern.</p>
-<p>The interactive playground (Rust compiled to WebAssembly) is under construction. See the repository README for the plan.</p>
-</main></body></html>
+<p>A predictive-coding network that learns your melody <strong>online</strong>. Play a pattern a few times, then break it.</p>
+</header>
+<section aria-label="Piano">
+<h2>Play (tap, or keys A–K)</h2>
+<div id="keys" role="group" aria-label="Piano keys"></div>
+<div class="row" style="margin-top:.75rem">
+<input id="seq" type="text" placeholder="C4 D4 E4 G4 E4 D4 C4" aria-label="Note sequence">
+<button class="tool" id="playseq">Play sequence</button>
+<button class="tool" id="phrase" title="Forget context, keep learning">New phrase</button>
+<button class="tool" id="clear">Reset all</button>
+<label><input type="checkbox" id="sound" checked> sound</label>
+</div>
+<div id="status" role="status" aria-live="polite">Loading model…</div>
+</section>
+<section aria-label="Expectation"><h2>What it expects next</h2><div id="bars"></div></section>
+<section aria-label="Surprise"><h2>Surprise (nats) per note</h2>
+<div id="empty">Nothing yet. Play a few notes to see how surprised the model is.</div>
+<svg id="spark" viewBox="0 0 300 60" preserveAspectRatio="none" hidden></svg></section>
+</main>
+<script type="module" src="app.mjs"></script>
+</body></html>
