@@ -22,6 +22,22 @@ export class Foretone {
     const p = this.x.ft_predict(this.h);
     return new Float32Array(this.x.memory.buffer, p, this.vocab).slice();
   }
+  /** Latent activations r (a copy), for visualization. */
+  latent() {
+    const n = this.x.ft_hidden(this.h);
+    return new Float32Array(this.x.memory.buffer, this.x.ft_latent(this.h), n).slice();
+  }
+  /** Free-run n symbols from the current state without changing the model. */
+  dream(n) {
+    const p = this.x.ft_alloc(4 * n);
+    try {
+      const k = this.x.ft_dream(this.h, p, n);
+      if (k < 0) throw new RangeError("bad dream length");
+      return Array.from(new Uint32Array(this.x.memory.buffer, p, k));
+    } finally {
+      this.x.ft_dealloc(p, 4 * n);
+    }
+  }
   reset() { this.x.ft_reset(this.h); }
   /** Serialize to bytes (a copy). */
   export() {

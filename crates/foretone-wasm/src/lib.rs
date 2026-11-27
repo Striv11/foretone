@@ -48,6 +48,15 @@ impl Session {
         self.model.predict()
     }
 
+    pub fn latent(&self) -> &[f32] {
+        self.model.latent()
+    }
+
+    /// Free-running generation of `n` symbols (does not change the model).
+    pub fn dream(&self, n: usize) -> Vec<usize> {
+        self.model.dream(n)
+    }
+
     pub fn reset(&mut self) {
         self.model.reset_state();
     }
@@ -141,6 +150,44 @@ pub unsafe extern "C" fn ft_vocab(h: *const Session) -> u32 {
 pub unsafe extern "C" fn ft_predict(h: *const Session) -> *const f32 {
     h.as_ref()
         .map_or(std::ptr::null(), |s| s.predict().as_ptr())
+}
+
+/// Pointer to `ft_hidden` f32 latent activations. Valid until the next mutating call.
+///
+/// # Safety
+/// `h` must be null or a live handle.
+#[no_mangle]
+pub unsafe extern "C" fn ft_latent(h: *const Session) -> *const f32 {
+    h.as_ref().map_or(std::ptr::null(), |s| s.latent().as_ptr())
+}
+
+/// Number of latent units (0 for a null handle).
+///
+/// # Safety
+/// `h` must be null or a live handle.
+#[no_mangle]
+pub unsafe extern "C" fn ft_hidden(h: *const Session) -> u32 {
+    h.as_ref().map_or(0, |s| s.latent().len() as u32)
+}
+
+/// Free-run `n` (<= 4096) symbols into `out[..n]` as u32 indices without changing the
+/// model. Returns the count written, or -1 on bad arguments.
+///
+/// # Safety
+/// `h` must be null or a live handle; `out` must be valid for `n` u32 writes.
+#[no_mangle]
+pub unsafe extern "C" fn ft_dream(h: *const Session, out: *mut u32, n: u32) -> i32 {
+    let (Some(s), false) = (h.as_ref(), out.is_null()) else {
+        return -1;
+    };
+    if n > 4096 {
+        return -1;
+    }
+    let seq = s.dream(n as usize);
+    for (i, v) in seq.iter().enumerate() {
+        *out.add(i) = *v as u32;
+    }
+    seq.len() as i32
 }
 
 /// # Safety

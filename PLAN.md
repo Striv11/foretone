@@ -9,7 +9,7 @@ Seven-day arc. Every milestone has acceptance criteria that can be checked by a 
 | 3 | Data & encoders | Melody input as note-name text and MIDI (`.mid` parser written in-crate, tests on fixture bytes); text/character mode; model state (de)serialization to a compact binary and round-trips bit-exactly | [x] |
 | 4 | WASM bindings | `foretone-wasm` crate (C ABI instead of wasm-bindgen, see README): `observe`, `predict`, `reset`, `export/import`; pages.yml builds it; a Node smoke test loads the .wasm and replays a melody with the same output as native (within float tolerance) | [x] |
 | 5 | Playground UI | Responsive piano-roll page: play notes by tap/keyboard, live next-note probability bars, surprise sparkline, Web Audio playback, empty state, light/dark (logic unit-tested in Node; UI not yet browser-tested, Day 6 e2e) | [x] |
-| 6 | Visualization & polish | Latent-state heatmap, prediction-error trace, "dream" mode (free-running generation), keyboard shortcuts, loading/error states, screenshots in README; Playwright e2e for the core flows | [ ] |
+| 6 | Visualization & polish | Latent-state heatmap, prediction-error trace, "dream" mode (free-running generation), keyboard shortcuts, loading/error states, screenshots in README; Playwright e2e for the core flows | [~] heatmap, error trace, dream, shortcuts done and unit/smoke tested; screenshots and Playwright e2e still open (no browser available so far) |
 | 7 | Hardening | Performance budget (>= 50k observe/s at 32 hidden units, benchmark in CI), README demo section final, docs for design decisions, v1 tag | [ ] |
 
 ## Stretch

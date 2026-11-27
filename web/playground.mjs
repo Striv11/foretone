@@ -31,6 +31,19 @@ export function sparkline(values, w, h, max = Math.log(NOTE_NAMES.length) * 2) {
     .join(" ");
 }
 
+const SHORTCUTS = { "1": "dream", "2": "phrase", "3": "clear" };
+/** Map a non-note shortcut key (1 dream, 2 new phrase, 3 reset) to an action name, or null. */
+export const shortcut = (key) => SHORTCUTS[key] ?? null;
+
+/** CSS colour for a latent activation in [-1,1]: warm for positive, cool for negative. */
+export function heatColor(v) {
+  const a = Math.min(Math.abs(Number.isFinite(v) ? v : 0), 1);
+  return `hsl(${v < 0 ? 210 : 340} 70% ${(92 - a * 52).toFixed(0)}%)`;
+}
+
+/** Prediction error of one step: 1 - probability the model gave the note (0 = foreseen). */
+export const predictionError = (e) => 1 - e.expected;
+
 export class Playground {
   /** @param model object with observe(i)->surprise, predict()->Float32Array, reset() */
   constructor(model, maxHistory = 64) {
@@ -49,11 +62,17 @@ export class Playground {
     for (let k = 1; k < p.length; k++) if (p[k] > p[top]) top = k;
     const surprise = this.model.observe(i);
     const e = { note: i, surprise, expected: p[i], top };
+    if (typeof this.model.latent === "function") e.latent = this.model.latent();
     this.history.push(e);
     if (this.history.length > this.maxHistory) this.history.shift();
     this.total++;
     return e;
   }
+  /** Latent activations after the latest note (empty if the model has none). */
+  latent() { return this.model.latent ? this.model.latent() : new Float32Array(0); }
+  /** Free-run n notes from the current state; the model does not learn from them. */
+  dream(n = 8) { return this.model.dream ? this.model.dream(n) : []; }
+  errors() { return this.history.map(predictionError); }
   /** Forget the current context but keep learned weights. */
   newPhrase() { this.model.reset(); }
   clear() { this.history = []; this.total = 0; this.model.reset(); }

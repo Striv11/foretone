@@ -42,3 +42,17 @@ m.reset();
 assert.ok(m.predict().every((p) => Math.abs(p - 0.25) < 1e-6));
 m.free(); m2.free();
 console.log(`ok: ${seq.length} observations match native; export ${bytes.length} bytes`);
+
+// latent state and dream mode through the wasm boundary
+{
+  const d = await Foretone.create(readFileSync(wasmPath), { vocab: 4, hidden: 16, seed: 42n });
+  assert.equal(d.latent().length, 16);
+  assert.ok(d.latent().every((v) => v === 0));
+  for (let i = 0; i < 800; i++) d.observe(tune[i % tune.length]);
+  assert.ok(d.latent().some((v) => v !== 0));
+  const before = d.export();
+  assert.deepEqual(d.dream(8), tune);
+  assert.deepEqual(d.export(), before, "dream does not change the model");
+  assert.throws(() => d.dream(5000), RangeError);
+  console.log("ok: latent + dream");
+}

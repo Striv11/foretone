@@ -66,6 +66,7 @@ pub struct Step {
     pub next: Vec<f32>,
 }
 
+#[derive(Clone)]
 pub struct Model {
     cfg: Config,
     /// Generative weights, `vocab x hidden`, row-major.
@@ -176,6 +177,24 @@ impl Model {
     /// Current distribution over the next symbol.
     pub fn predict(&self) -> &[f32] {
         &self.pred
+    }
+
+    /// Current latent activity `r` (length `hidden`), for visualization.
+    pub fn latent(&self) -> &[f32] {
+        &self.r
+    }
+
+    /// Free-run `n` symbols by repeatedly following the most likely next symbol.
+    /// Works on a copy, so the model's state and weights are left untouched.
+    pub fn dream(&self, n: usize) -> Vec<usize> {
+        let mut m = self.clone();
+        (0..n)
+            .map(|_| {
+                let s = argmax(m.predict());
+                m.observe(s);
+                s
+            })
+            .collect()
     }
 
     /// Forget the latent state (not the learned weights), e.g. at a song boundary.

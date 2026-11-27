@@ -29,6 +29,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tool{border:1px solid var(--line);background:var(--card);border-radius:.4rem;padding:.35rem .75rem}
 input[type=text]{flex:1;min-width:10rem;font:inherit;padding:.35rem .5rem;border:1px solid var(--line);border-radius:.4rem;background:var(--bg);color:var(--fg)}
 #status{min-height:1.5em}#status.err{color:var(--warn)}
+#heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows,24),1fr);gap:1px;height:6rem}
+#heat i{border-radius:1px}
+#err{width:100%;height:3.5rem;display:block}
+#err polyline{fill:none;stroke:var(--ac);stroke-width:2;vector-effect:non-scaling-stroke}
+#dreamout{font-variant-numeric:tabular-nums;min-height:1.5em}
+kbd{border:1px solid var(--line);border-radius:.25rem;padding:0 .3rem;font-size:.8em}
 #empty{color:var(--mut);text-align:center;padding:1rem 0}
 </style></head><body><main>
 <header>
@@ -41,8 +47,9 @@ input[type=text]{flex:1;min-width:10rem;font:inherit;padding:.35rem .5rem;border
 <div class="row" style="margin-top:.75rem">
 <input id="seq" type="text" placeholder="C4 D4 E4 G4 E4 D4 C4" aria-label="Note sequence">
 <button class="tool" id="playseq">Play sequence</button>
-<button class="tool" id="phrase" title="Forget context, keep learning">New phrase</button>
-<button class="tool" id="clear">Reset all</button>
+<button class="tool" id="phrase" title="Forget context, keep learning (shortcut: 2)">New phrase</button>
+<button class="tool" id="clear" title="Shortcut: 3">Reset all</button>
+<button class="tool" id="dream" title="Shortcut: 1">Dream</button>
 <label><input type="checkbox" id="sound" checked> sound</label>
 </div>
 <div id="status" role="status" aria-live="polite">Loading model…</div>
@@ -51,6 +58,13 @@ input[type=text]{flex:1;min-width:10rem;font:inherit;padding:.35rem .5rem;border
 <section aria-label="Surprise"><h2>Surprise (nats) per note</h2>
 <div id="empty">Nothing yet. Play a few notes to see how surprised the model is.</div>
 <svg id="spark" viewBox="0 0 300 60" preserveAspectRatio="none" hidden></svg></section>
+<section aria-label="Prediction error"><h2>Prediction error per note (1 − probability given)</h2>
+<svg id="err" viewBox="0 0 300 40" preserveAspectRatio="none" hidden></svg></section>
+<section aria-label="Latent state"><h2>Latent state (warm +, cool −; newest right)</h2>
+<div id="heat" role="img" aria-label="Heatmap of hidden unit activity over recent notes"></div></section>
+<section aria-label="Dream"><h2>Dream (free-running; it does not learn from it)</h2>
+<div id="dreamout">Press Dream (or <kbd>1</kbd>) to hear what it plays when left alone.</div>
+<p>Shortcuts: <kbd>A</kbd>–<kbd>K</kbd> notes · <kbd>1</kbd> dream · <kbd>2</kbd> new phrase · <kbd>3</kbd> reset</p></section>
 </main>
 <script type="module" src="app.mjs"></script>
 </body></html>

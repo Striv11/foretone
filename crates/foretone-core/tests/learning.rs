@@ -72,3 +72,16 @@ fn deterministic_for_a_seed() {
         assert_eq!(a.observe(i % 4).next, b.observe(i % 4).next);
     }
 }
+
+#[test]
+fn dream_replays_the_learned_tune_without_touching_the_model() {
+    let tune = [0usize, 1, 2, 3, 2, 1, 0, 0];
+    let mut m = Model::new(Config::new(4, 16));
+    run(&mut m, &tune, 100);
+    let (bytes, pred, latent) = (m.to_bytes(), m.predict().to_vec(), m.latent().to_vec());
+    assert_eq!(m.dream(16), [tune, tune].concat());
+    assert_eq!(m.dream(0), Vec::<usize>::new());
+    assert_eq!(m.to_bytes(), bytes);
+    assert_eq!(m.predict(), &pred[..]);
+    assert_eq!(m.latent(), &latent[..]);
+}

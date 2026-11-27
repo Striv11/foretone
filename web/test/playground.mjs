@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { Playground, keyToNote, parseNotes, sparkline, freqOf, isBlack, NOTE_NAMES } from "../playground.mjs";
+import { Playground, keyToNote, parseNotes, sparkline, freqOf, isBlack, NOTE_NAMES, shortcut, heatColor, predictionError } from "../playground.mjs";
 
 // Fake model: predicts uniformly until it has seen a symbol, then predicts that symbol again.
 function fake() {
@@ -47,3 +47,28 @@ assert.ok(Math.abs(pg.expectation()[0] - 0.01) < 1e-6);
 pg.clear();
 assert.equal(pg.history.length, 0);
 console.log("playground tests ok");
+
+// Day 6: shortcuts, heat colours, error trace, dream, latent history.
+assert.equal(shortcut("1"), "dream");
+assert.equal(shortcut("3"), "clear");
+assert.equal(shortcut("a"), null);
+assert.equal(shortcut(undefined), null);
+assert.notEqual(heatColor(0.9), heatColor(-0.9));
+assert.equal(heatColor(NaN), heatColor(0), "NaN is drawn as silent");
+assert.equal(heatColor(5), heatColor(1), "clamped");
+assert.equal(predictionError({ expected: 0.25 }), 0.75);
+{
+  const m = fake();
+  const plain = new Playground(m);
+  assert.deepEqual(plain.dream(4), [], "model without dream support");
+  assert.equal(plain.latent().length, 0);
+  m.latent = () => new Float32Array([0.5, -0.5]);
+  m.dream = (n) => Array(n).fill(2);
+  const q = new Playground(m);
+  const e1 = q.play(0), e2 = q.play(0);
+  assert.deepEqual(Array.from(e1.latent), [0.5, -0.5]);
+  assert.deepEqual(q.dream(3), [2, 2, 2]);
+  assert.equal(q.errors().length, 2);
+  assert.ok(q.errors()[1] < q.errors()[0], "repeat is better predicted");
+  assert.equal(q.total, 2, "dreaming does not count as playing");
+}

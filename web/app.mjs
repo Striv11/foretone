@@ -1,5 +1,5 @@
 import { Foretone } from "./foretone.mjs";
-import { Playground, NOTE_NAMES, isBlack, freqOf, keyToNote, parseNotes, sparkline } from "./playground.mjs";
+import { Playground, NOTE_NAMES, isBlack, freqOf, keyToNote, parseNotes, sparkline, shortcut, heatColor } from "./playground.mjs";
 
 const $ = (id) => document.getElementById(id);
 const status = (msg, err = false) => { $("status").textContent = msg; $("status").className = err ? "err" : ""; };
@@ -28,16 +28,54 @@ function render(last) {
   const s = pg.surprises();
   $("empty").hidden = s.length > 0; $("spark").hidden = s.length === 0;
   $("spark").innerHTML = `<polyline points="${sparkline(s, 300, 60)}"/>`;
+  $("err").hidden = s.length === 0;
+  $("err").innerHTML = `<polyline points="${sparkline(pg.errors(), 300, 40, 1)}"/>`;
+  renderHeat();
   if (last) status(`${NOTE_NAMES[last.note]}: surprise ${last.surprise.toFixed(2)} nats` +
     ` (model gave it ${(last.expected * 100).toFixed(0)}%; expected ${NOTE_NAMES[last.top]})`);
 }
 
-function play(i) {
+function renderHeat() {
+  const cols = pg.history.map((e) => e.latent).filter((l) => l && l.length).slice(-24);
+  const heat = $("heat");
+  if (!cols.length) return heat.replaceChildren();
+  const rows = cols[0].length;
+  heat.style.setProperty("--rows", rows);
+  heat.style.gridTemplateColumns = `repeat(${cols.length}, 1fr)`;
+  heat.replaceChildren(...cols.flatMap((l) => Array.from(l, (v) => {
+    const c = document.createElement("i"); c.style.background = heatColor(v); return c;
+  })));
+}
+
+function play(i, learn = true) {
   if (!pg) return;
   beep(i);
+  if (!learn) return flash(i);
+  flash(i);
+  render(pg.play(i));
+}
+
+function flash(i) {
   const el = $("keys").children[i];
   el.classList.add("active"); setTimeout(() => el.classList.remove("active"), 120);
-  render(pg.play(i));
+}
+
+let busy = false;
+async function dream() {
+  if (!pg || busy) return;
+  if (!pg.total) return status("Play a melody first; it dreams what it has learned.", true);
+  busy = true; $("dream").disabled = true;
+  try {
+    const seq = pg.dream(16);
+    $("dreamout").textContent = seq.map((i) => NOTE_NAMES[i]).join(" ");
+    for (const n of seq) { play(n, false); await new Promise((r) => setTimeout(r, 260)); }
+  } finally { busy = false; $("dream").disabled = false; }
+}
+
+function act(name) {
+  if (name === "dream") dream();
+  else if (name === "phrase") $("phrase").click();
+  else if (name === "clear") $("clear").click();
 }
 
 async function playSeq() {
@@ -64,12 +102,15 @@ function buildKeys() {
 buildKeys();
 document.addEventListener("keydown", (e) => {
   if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === "INPUT") return;
+  const a = shortcut(e.key);
+  if (a) return act(a);
   const i = keyToNote(e.key);
   if (i >= 0) play(i);
 });
+$("dream").addEventListener("click", dream);
 $("playseq").addEventListener("click", playSeq);
 $("phrase").addEventListener("click", () => { pg?.newPhrase(); render(null); status("Context cleared; learned weights kept."); });
-$("clear").addEventListener("click", () => { pg?.clear(); render(null); status("Model reset."); });
+$("clear").addEventListener("click", () => { pg?.clear(); render(null); status("Model reset."); $("dreamout").textContent = ""; });
 
 try {
   const res = await fetch("pkg/foretone_wasm.wasm");

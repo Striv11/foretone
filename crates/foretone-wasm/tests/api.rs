@@ -117,3 +117,42 @@ fn alloc_roundtrip() {
         ft_dealloc(p, 64);
     }
 }
+
+#[test]
+fn latent_and_dream_through_the_abi() {
+    unsafe {
+        let h = ft_new(4, 16, 42, 0);
+        assert_eq!(ft_hidden(h), 16);
+        let zeros = std::slice::from_raw_parts(ft_latent(h), 16).to_vec();
+        assert!(zeros.iter().all(|&v| v == 0.0), "fresh state is silent");
+        for s in tune().into_iter().cycle().take(800) {
+            ft_observe(h, s as u32);
+        }
+        let r = std::slice::from_raw_parts(ft_latent(h), 16);
+        assert!(r.iter().any(|&v| v != 0.0) && r.iter().all(|v| v.is_finite()));
+
+        // 800 notes = 100 whole cycles, so the dream should continue the tune from C.
+        let before_p = std::slice::from_raw_parts(ft_predict(h), 4).to_vec();
+        let n = ft_export(h);
+        let before_bytes = std::slice::from_raw_parts(ft_export_ptr(h), n as usize).to_vec();
+        let mut out = [0u32; 8];
+        assert_eq!(ft_dream(h, out.as_mut_ptr(), 8), 8);
+        assert_eq!(out, [0, 1, 2, 3, 2, 1, 0, 0]);
+
+        // Dreaming is read-only.
+        assert_eq!(std::slice::from_raw_parts(ft_predict(h), 4), &before_p[..]);
+        let n2 = ft_export(h);
+        assert_eq!(
+            std::slice::from_raw_parts(ft_export_ptr(h), n2 as usize),
+            &before_bytes[..]
+        );
+
+        // Bad arguments are errors, not panics.
+        assert_eq!(ft_dream(h, out.as_mut_ptr(), 5000), -1);
+        assert_eq!(ft_dream(h, std::ptr::null_mut(), 4), -1);
+        assert_eq!(ft_dream(std::ptr::null(), out.as_mut_ptr(), 4), -1);
+        assert_eq!(ft_hidden(std::ptr::null()), 0);
+        assert!(ft_latent(std::ptr::null()).is_null());
+        ft_free(h);
+    }
+}

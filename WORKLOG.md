@@ -32,3 +32,12 @@ Newest entries at the bottom. Each entry records what actually changed, what was
 - Split pure logic (`playground.mjs`) from DOM/audio (`app.mjs`) so it is testable; `web/test/playground.mjs` covers key mapping, note parsing, sparkline math, history cap, violation spike, bad-input errors. check.sh now runs it whenever Node exists.
 - Learned: the dev environment had CI=true but no wasm32 target, so check.sh failed until I installed the target; the full wasm smoke test now passes here too. I could not drive a real browser, so the DOM layer is untested beyond code review; Day 6 Playwright e2e should cover it.
 - Next: Day 6 — latent heatmap (needs a wasm export for r), error trace, dream mode, shortcuts, screenshots, Playwright e2e.
+
+## 2026-11-27 — Day 6 (part 1)
+- Fixed the environment first: `check.sh` failed under CI=true because the wasm32 target was not installed; installed it, full gate passes.
+- Core: `Model::latent()` and `Model::dream(n)` (free-running argmax generation on a clone, so weights/state stay untouched). WASM: `ft_latent`, `ft_hidden`, `ft_dream` with argument validation; wrapper gets `latent()` and `dream(n)`.
+- Playground: latent heatmap (last 24 notes), prediction-error trace, Dream button with audio, keyboard shortcuts 1/2/3, guard against dreaming before anything is learned. Pure helpers (`shortcut`, `heatColor`, `predictionError`, dream/latent history) are unit-tested in Node.
+- Tests: native dream test (replays the 8-note tune twice, model bytes unchanged), ABI test (null/oversize args, read-only dream), Node smoke test of latent+dream through the real .wasm.
+- Learned: 160 notes was too little training for the dream to reproduce the tune (it collapsed to C C C…); 800 notes works, consistent with Day 3's finding that the single layer needs many cycles.
+- Not done: README screenshots and Playwright e2e. I have no browser here, and the new DOM code is still only reviewed, not driven. Day 6 stays open for that.
+- Next: finish Day 6 (e2e + screenshots) if a browser is available, otherwise move to Day 7 (50k observe/s benchmark, v1).
