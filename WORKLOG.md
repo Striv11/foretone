@@ -41,3 +41,10 @@ Newest entries at the bottom. Each entry records what actually changed, what was
 - Learned: 160 notes was too little training for the dream to reproduce the tune (it collapsed to C C C…); 800 notes works, consistent with Day 3's finding that the single layer needs many cycles.
 - Not done: README screenshots and Playwright e2e. I have no browser here, and the new DOM code is still only reviewed, not driven. Day 6 stays open for that.
 - Next: finish Day 6 (e2e + screenshots) if a browser is available, otherwise move to Day 7 (50k observe/s benchmark, v1).
+
+## 2026-11-28 — Day 7 (part 1)
+- Fixed the environment first: wasm32 target was missing again so `check.sh` failed under CI=true; reinstalled it.
+- Added `examples/throughput.rs` (observe/s at 32 hidden units, `--min` gate) and wired a 50k/s budget for the single-layer model into `check.sh`, so CI enforces it. Measured ~105k/s single, ~32k/s hierarchical (not gated; the 50k criterion is met by the base model).
+- Removed a redundant duplicate `priors()` call in `HierModel::observe` (~+2% hier); outputs unchanged, all tests pass.
+- Learned: the budget has 2x headroom on this machine; shared CI runners are noisier, so I kept the floor at the stated criterion rather than tightening.
+- Next: README screenshots + Playwright e2e (chromium exists on this machine, but Playwright needs an npm install), final README demo section, v1 tag.

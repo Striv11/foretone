@@ -6,6 +6,9 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 
+# Performance budget: single-layer model at 32 hidden units must sustain >= 50k observe/s.
+cargo run -q --release -p foretone-core --example throughput -- --min 50000
+
 # Playground logic tests (pure JS, only needs Node).
 if command -v node >/dev/null; then node web/test/playground.mjs; fi
 

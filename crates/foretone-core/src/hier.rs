@@ -239,9 +239,9 @@ impl HierModel {
 
         let r1_prev = self.r1.clone();
         let r2_prev = self.r2.clone();
-        let (prior1, _) = self.priors(&r1_prev, &r2_prev, &r2_prev);
+        let (prior1, prior2) = self.priors(&r1_prev, &r2_prev, &r2_prev);
         let mut r1 = prior1;
-        let mut r2 = self.priors(&r1_prev, &r2_prev, &r2_prev).1;
+        let mut r2 = prior2;
 
         for _ in 0..self.cfg.infer_steps {
             let (_, g1, g2) = self.energy_and_grad(symbol, &r1_prev, &r2_prev, &r1, &r2);
